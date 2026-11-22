@@ -4,6 +4,7 @@ import pymupdf
 import sys
 import uuid
 import logging
+import os
 
 EMBEDDING_MODEL = "nomic-embed-text"
 LANGUAGE_MODEL = "qwen2.5:3b-instruct"
@@ -57,23 +58,47 @@ def gen_embeddings(chunks:list[str]):
     return embeddings
 
 def build(pdf_path:str):
+    logger.info(f"Building {pdf_path}")
+
     pages = extract_text(pdf_path)
 
     for p in pages:
         p["chunks"] = chunk_text(p["text"])
         p["embeddings"] = gen_embeddings(p["chunks"])
 
-    cl = chromadb.PersistentClient("./chroma")
-    coll = cl.get_or_create_collection("docs")
+        logger.info(f"Chunked and embedded page {p['page']}")
 
-    for pn, p in enumerate(pages):
+    cl = chromadb.PersistentClient("./chromadb")
+    fname, _ = os.path.splitext(os.path.basename(pdf_path))
+    coll = cl.get_or_create_collection(f"{fname}-docs")
+
+    logger.info("Built vector database")
+
+    for p in pages:
         for i in range(len(p["chunks"])):
+            uuid_generated = str(uuid.uuid4())
             coll.add(
-                ids=[str(uuid.uuid4())],
+                ids=[uuid_generated],
                 embeddings=[p["embeddings"][i]],
                 documents=[p["chunks"][i]],
-                metadatas=[{"source": pdf_path, "page": pn}]
+                metadatas=[{"source": pdf_path, "page": p["page"]}]
             )
 
+            logger.info(f"Added {uuid_generated} to collection")
+
+    logger.info(f"Added {coll.count()} items to {coll.name}")
+
+def get(pdf_path:str):
+    cl = chromadb.PersistentClient("./chromadb")
+    fname, _ = os.path.splitext(os.path.basename(pdf_path))
+    coll = cl.get_collection(f"{fname}-docs")
+
+    logger.info(f"Loaded {coll.count()} from {coll.name}")
+
+    data = coll.get(
+        include=["embeddings", "documents", "metadatas"]
+    )
+
 if __name__ == "__main__":
-    build(sys.argv[1])
+    #build(sys.argv[1])
+    get(sys.argv[1])
