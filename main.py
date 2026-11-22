@@ -1,6 +1,7 @@
 import chromadb
 import ollama
 import pymupdf
+import sys
 
 EMBEDDING_MODEL = "nomic-embed-text"
 LANGUAGE_MODEL = "qwen2.5:3b-instruct"
@@ -47,7 +48,8 @@ def gen_embeddings(chunks:list[str]):
     return embeddings
 
 if __name__ == "__main__":
-    pages = extract_text("C:\\Users\\ADMIN\\Downloads\\Calculus by Thomas and Finny.pdf")
+    pages = extract_text(sys.argv[1])
+    
     for p in pages:
         p["chunks"] = chunk_text(p["text"])
         p["embeddings"] = gen_embeddings(p["chunks"])
