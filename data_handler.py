@@ -2,11 +2,20 @@ import chromadb
 import ollama
 import pymupdf
 import sys
+import uuid
+import logging
 
 EMBEDDING_MODEL = "nomic-embed-text"
 LANGUAGE_MODEL = "qwen2.5:3b-instruct"
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 150
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 
 def clean_text(t:str):
     return t.replace("-\n", "")
@@ -43,14 +52,28 @@ def gen_embeddings(chunks:list[str]):
 
     for c in chunks:
         embedding = ollama.embeddings(model=EMBEDDING_MODEL, prompt=c)
-        embeddings.append(embedding)
+        embeddings.append(embedding["embedding"])
 
     return embeddings
 
-if __name__ == "__main__":
-    pages = extract_text(sys.argv[1])
-    
+def build(pdf_path:str):
+    pages = extract_text(pdf_path)
+
     for p in pages:
         p["chunks"] = chunk_text(p["text"])
         p["embeddings"] = gen_embeddings(p["chunks"])
-    
+
+    cl = chromadb.PersistentClient("./chroma")
+    coll = cl.get_or_create_collection("docs")
+
+    for pn, p in enumerate(pages):
+        for i in range(len(p["chunks"])):
+            coll.add(
+                ids=[str(uuid.uuid4())],
+                embeddings=[p["embeddings"][i]],
+                documents=[p["chunks"][i]],
+                metadatas=[{"source": pdf_path, "page": pn}]
+            )
+
+if __name__ == "__main__":
+    build(sys.argv[1])
