@@ -17,6 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+cl = chromadb.PersistentClient("./chromadb")
 
 def clean_text(t:str):
     return t.replace("-\n", "")
@@ -58,8 +59,9 @@ def gen_embeddings(chunks:list[str]):
     return embeddings
 
 def build(pdf_path:str):
-    logger.info(f"Building {pdf_path}")
+    global cl
 
+    logger.info(f"Building {pdf_path}")
     pages = extract_text(pdf_path)
 
     for p in pages:
@@ -68,7 +70,6 @@ def build(pdf_path:str):
 
         logger.info(f"Chunked and embedded page {p['page']}")
 
-    cl = chromadb.PersistentClient("./chromadb")
     fname, _ = os.path.splitext(os.path.basename(pdf_path))
     coll = cl.get_or_create_collection(f"{fname}-docs")
 
@@ -89,7 +90,7 @@ def build(pdf_path:str):
     logger.info(f"Added {coll.count()} items to {coll.name}")
 
 def get(pdf_path:str):
-    cl = chromadb.PersistentClient("./chromadb")
+    global cl
     fname, _ = os.path.splitext(os.path.basename(pdf_path))
     coll = cl.get_collection(f"{fname}-docs")
 
