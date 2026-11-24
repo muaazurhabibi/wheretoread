@@ -8,8 +8,8 @@ import os
 
 EMBEDDING_MODEL = "nomic-embed-text"
 LANGUAGE_MODEL = "qwen2.5:3b-instruct"
-CHUNK_SIZE = 800
-CHUNK_OVERLAP = 150
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 100
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 cl = chromadb.PersistentClient("./chromadb")
 
-def clean_text(t:str):
-    return t.replace("-\n", "")
+def clean_text(t:str): return t.replace("-\n", "").replace("\n", "")
 
 def extract_text(pdf_path:str):
     doc = pymupdf.open(pdf_path)
@@ -75,6 +74,8 @@ def build(pdf_path:str):
 
     logger.info("Built vector database")
 
+    chunk_idx = 0
+
     for p in pages:
         for i in range(len(p["chunks"])):
             uuid_generated = str(uuid.uuid4())
@@ -82,7 +83,7 @@ def build(pdf_path:str):
                 ids=[uuid_generated],
                 embeddings=[p["embeddings"][i]],
                 documents=[p["chunks"][i]],
-                metadatas=[{"source": pdf_path, "page": p["page"]}]
+                metadatas=[{"source": pdf_path, "page": p["page"], "chunk_idx": chunk_idx}]
             )
 
             logger.info(f"Added {uuid_generated} to collection")
@@ -101,5 +102,5 @@ def get(pdf_path:str):
     )
 
 if __name__ == "__main__":
-    #build(sys.argv[1])
-    get(sys.argv[1])
+    build(sys.argv[1])
+    #get(sys.argv[1])
