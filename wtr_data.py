@@ -21,7 +21,7 @@ cl = chromadb.PersistentClient("./chromadb")
 
 def clean_text(t:str): return t.replace("-\n", "").replace("\n", "")
 
-def extract_text(pdf_path:str):
+def extract_pdf_text(pdf_path:str):
     doc = pymupdf.open(pdf_path)
     pages = []
 
@@ -61,7 +61,7 @@ def build(pdf_path:str):
     global cl
 
     logger.info(f"Building {pdf_path}")
-    pages = extract_text(pdf_path)
+    pages = extract_pdf_text(pdf_path)
 
     for p in pages:
         p["chunks"] = chunk_text(p["text"])

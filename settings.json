@@ -1,0 +1,12 @@
+{
+    "settings": {
+        "models_settings": {
+            "language_model": "qwen2.5:3b-instruct",
+            "embedding_model": "nomic-embed-text",
+            "llm_prompt": "Answer the question using ONLY the context below. If the answer isn't in the context, say you don't know.\n\nContext: {context}\n\n\nUser query: {query}\n\n\n Answer"
+        },
+        "app_settings": {
+            "debug_level": 20
+        }
+    }
+}
